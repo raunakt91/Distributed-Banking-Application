@@ -1,504 +1,656 @@
 #include <stdio.h>
-#include <sys/socket.h>
 #include <sys/types.h>
-#include <stdlib.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
+#include <fcntl.h>
 #include <arpa/inet.h>
-#include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define PORT 7820
-int sock = 0;
+void print_stars()
+{
+    printf("\n****************************************************************************************************************************\n");
+}
 
-void goToLandingScreen();
-void goToLoginScreen();
-void sendDataToServer(char*);
-void goToSignUpScreen();
-void goToExitScreen();
-void goToChoiceScreen();
-void goToMessageScreen();
-void goToCustomerListScreen(char*);
-void goToCustomerEditProfileListScreen();
-void customerEditProfileScreen(char*, char*);
-void goToProfileEditMessageScreen(char*);
-void customerProfileScreen();
-void goToAccountInfoScreen();
-void goToDebitScreen();
-void goToCreditScreen();
+void print_lines()
+{
+    printf("-----------------------------\n");
+    
+}
 
-int main(int argc, char* argv[]) {
+int login_signup(int sockfd);
 
-    struct sockaddr_in server_address;
-    char choice1,choice2;
-    char username[30], password[8];
+void customer_module(char *LoginID, char *Password, int sockfd)
+{
+    char option[5];
+    
+    printf("\n\n\t\t\t\t\t*****  Customer logged in as '%s'  *****\n\n",LoginID);
+    printf("\n");
+    print_lines();
+    printf("Please select one option:\n");
+    printf("1. View Profile\n");
+    printf("2. Edit Profile\n");
+    printf("3. View Account Balance\n");
+    printf("4. Send/Transfer Money\n");
+    printf("5. Pay bills\n");
+    printf("6. View Statement\n");
+    printf("7. Exit\n");
+    print_lines();
+    printf("\nEnter your choice:\t");
+    scanf("%s", option);
+    send(sockfd, option, sizeof(option), 0);
+    if(strcmp(option,"1") == 0)
+    {
+        system("clear");
+        char recv_buffer[100];
+        bzero(recv_buffer,sizeof(recv_buffer));
+        recv(sockfd,recv_buffer,sizeof(recv_buffer),0);
+        printf("\nProfile Details are -\n");
+        print_stars();
+        printf("Login_ID\tEmail_ID\t\tPassword\tRole\t\tFull_Name\tPhone_Number\tAddress\n");
+        printf("%s",recv_buffer);
+        print_stars();
+        memset(&recv_buffer, 0, sizeof(recv_buffer));
+        //char recv_buffer[100] = {0};
+        //bzero(recv_buffer,100);
+    }
+    if(strcmp(option,"2") == 0)
+    {
+        system("clear");
+        int edit;
+        print_lines();
+        printf("Please select one to edit:\n");
+        printf("1. Email ID\n");
+        printf("2. Password\n");
+        printf("3. Phone Number\n");
+        printf("4. Address\n");
+        printf("5. Done\n");
+        print_lines();
+        printf("\nEnter your choice:\t");
+        scanf("%d",&edit);
+        switch(edit)
+        {
+            char out[30];
+            case 1:
+            {
+                char emailid[20];
+                char id[5]="1";
+                send(sockfd,id,sizeof(id),0);
+                printf("\nPlease enter the new Email Address:\t");
+                scanf("%s",emailid);
+                send(sockfd,emailid,sizeof(emailid),0);
+                recv(sockfd,out,sizeof(out),0);
+                print_stars();
+                printf("\t\t\t\t\t%s",out);
+                print_stars();
+                customer_module(LoginID,Password,sockfd);
+            }
+            case 2:
+            {
+                char pass[20];
+                char id[5]="2";
+                send(sockfd,id,sizeof(id),0);
+                printf("\nPlease enter the new Password:\t");
+                scanf("%s",pass);
+                send(sockfd,pass,sizeof(pass),0);
+                recv(sockfd,out,sizeof(out),0);
+                print_stars();
+                printf("\t\t\t\t\t%s",out);
+                print_stars();
+                customer_module(LoginID,Password,sockfd);
+            }
+            case 3:
+            {
+                char number[20];
+                char id[5]="3";
+                send(sockfd,id,sizeof(id),0);
+                printf("\nPlease enter the new Phone Number:\t");
+                scanf("%s",number);
+                send(sockfd,number,sizeof(number),0);
+                recv(sockfd,out,sizeof(out),0);
+                print_stars();
+                printf("\t\t\t\t\t%s",out);
+                print_stars();
+                customer_module(LoginID,Password,sockfd);
+            }
+            case 4:
+            {
+                char address[20];
+                char id[5]="4";
+                send(sockfd,id,sizeof(id),0);
+                printf("\nPlease enter the new Address:\t");
+                scanf(" %[^\n]",address);
+                send(sockfd,address,sizeof(address),0);
+                recv(sockfd,out,sizeof(out),0);
+                print_stars();
+                printf("\t\t\t\t\t%s",out);
+                print_stars();
+                customer_module(LoginID,Password,sockfd);
+            }
+        }
+    }
+    if(strcmp(option,"3") == 0)
+    {
+        system("clear");
+        char balance[100];
+        bzero(balance,sizeof(balance));
+        recv(sockfd,balance,sizeof(balance),0);
+        print_stars();
+        printf("\t\t\t\tAccount Balance -\t$%s",balance);
+        print_stars();
+        //memset(&balance, 0, sizeof(balance));
+        //char recv_buffer[100] = {0};
+        //bzero(recv_buffer,100);
+    }
+    if(strcmp(option,"4") == 0)
+    {
+        system("clear");
+        char ID[100], amount[100];
+        char transfer[100];
+        printf("Enter the customer ID:\t");
+        scanf("%s", ID);
+        printf("Enter the amount:\t$");
+        scanf("%s", amount);
+        send(sockfd,ID,sizeof(ID),0);
+        send(sockfd,amount,sizeof(amount),0);
+        recv(sockfd,transfer,sizeof(transfer),0);
+        if(strcmp(transfer,"SUCCESSFUL") == 0)
+        {
+            print_stars();
+            printf("\t\t\t\tAmount transfer of $%s to %s - %s",amount,ID,transfer);
+            print_stars();
+        }
+        else if(strcmp(transfer,"UNSUCCESSFUL") == 0)
+        {
+            print_stars();
+            printf("\t\t\t\tAmount transfer of $%s to %s - %s",amount,ID,transfer);
+            print_stars();
+        }
+        else if(strcmp(transfer,"INVALID ID") == 0)
+        {
+            print_stars();
+            printf("\t\t\t\tReceiver ID is INVALID, please enter a VALID Receiver ID");
+            print_stars();
+        }
+        memset(&transfer[0], 0, sizeof(transfer));
+        //char recv_buffer[100] = {0};
+        //bzero(recv_buffer,100);
+    }
+    if(strcmp(option,"5") == 0)
+    {
+        system("clear");
+        char payee[5],acc_no[10],amt[5];
+        char message[100];
+        printf("\nPlease select the bill payee-\n");
+        printf("1. PGNE\n");
+        printf("2. AT&T\n");
+        printf("3. Xfinity\n");
+        printf("\nEnter your choice:\t");
+        scanf("%s",payee);
+        printf("\nEnter the account number:\t");
+        scanf("%s",acc_no);
+        printf("Enter the amount:\t$");
+        fflush(stdout);
+        scanf("%s",amt);
+        send(sockfd,amt,sizeof(amt),0);
+        recv(sockfd,message,sizeof(message),0);
+        printf("\n%s",message);
+    }
+    if(strcmp(option,"6") ==0)
+    {
+        system("clear");
+        char recv_buffer1[1000];
+        bzero(recv_buffer1,sizeof(recv_buffer1));
+        //char recv_buffer2[1000];
+        recv(sockfd,recv_buffer1,sizeof(recv_buffer1),0);
+        print_stars();
+        printf("Transactions for '%s'-\n",LoginID);
+        printf("Sent by \tReceived by \tAmount\n");
+        printf("--------------------------------------\n");
+        printf("%s",recv_buffer1);
+        print_stars();
+    }
+    if(strcmp(option,"7") ==0)
+    {
+        system("clear");
+        login_signup(sockfd);
+    }
+    customer_module(LoginID,Password,sockfd);
+}
 
-    //Creating socket by calling socket function.
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-
-    //Check whether the socket is created or not. If it is not created then display error message.
-    if(sock < 0) {
-        printf("Error creating socket\n");
-        return -1;
+void teller_module(char *LoginID, char *Password, int sockfd)
+{
+    char option[5];
+    char recv_buffer[1000];
+    printf("\n\n\t\t\t\t\t*****  Teller logged in as '%s'  *****\n\n",LoginID);
+    printf("\n");
+    print_lines();
+    printf("Please select one option:\n");
+    printf("1. Setup new customer accounts\n");
+    printf("2. Deposit money in account for customer\n");
+    printf("3. Withdraw money from account for customer\n");
+    printf("4. View Customer Profile\n");
+    printf("5. Issue Check book\n");
+    printf("6. Approve Existing account requests\n");
+    printf("7. Exit\n");
+    print_lines();
+    printf("\nEnter your choice:\t");
+    scanf("%s", option);
+    send(sockfd, option, sizeof(option), 0);
+    if(strcmp(option,"1") == 0)
+    {
+        system("clear");
+        printf("\nEnter the following details for creating a new account\t");
+        
+        printf("\nEnter Email ID:\t");
+        char email[100];
+        scanf("%s",email);
+        
+        printf("Enter password:\t");
+        char pass[100];
+        scanf("%s",pass);
+        printf("Enter your full name:\t");
+        char fname[100];
+        scanf(" %[^\n]",fname);
+        
+        printf("Enter your Phone Number:\t");
+        char pnumber[100];
+        scanf("%s", pnumber);
+        
+        printf("Enter your address:\t");
+        char address[100];
+        scanf(" %[^\n]",address);
+        
+        char signupdetails[500];
+        strcpy(signupdetails,"");
+        strcat(signupdetails,email);
+        strcat(signupdetails," ");
+        strcat(signupdetails,pass);
+        strcat(signupdetails," ");
+        strcat(signupdetails,pnumber);
+        strcat(signupdetails," ");
+        send(sockfd, signupdetails, sizeof(signupdetails), 0);
+        send(sockfd, fname, sizeof(fname), 0);
+        send(sockfd, address, sizeof(address), 0);
+        char message[30];
+        recv(sockfd,message,sizeof(message),0);
+        printf("\n%s\n",message);
+    }
+    
+    if(strcmp(option,"2") == 0)
+    {
+        system("clear");
+        char ID[100], amount[100];
+        char message[100];
+        printf("Enter the customer ID:\t");
+        scanf("%s", ID);
+        printf("Enter the amount:\t$");
+        scanf("%s", amount);
+        send(sockfd,ID,sizeof(ID),0);
+        send(sockfd,amount,sizeof(amount),0);
+        recv(sockfd,message,sizeof(message),0);
+        if(strcmp(message,"SUCCESSFUL") == 0)
+        {
+            print_stars();
+            printf("\t\t\t\t\tAmount $%s added to Customer's account",amount);
+            print_stars();
+        }
+    }
+    if(strcmp(option,"3") == 0)
+    {
+        system("clear");
+        char ID[100], amount[100];
+        char message[100];
+        printf("Enter the customer ID:\t");
+        scanf("%s", ID);
+        printf("Enter the amount:\t$");
+        scanf("%s", amount);
+        send(sockfd,ID,sizeof(ID),0);
+        send(sockfd,amount,sizeof(amount),0);
+        recv(sockfd,message,sizeof(message),0);
+        if(strcmp(message,"SUCCESSFUL") == 0)
+        {
+            print_stars();
+            printf("\t\t\t\t\tAmount $%s deducted from Customer's account",amount);
+            print_stars();
+        }
+    }
+    
+    if(strcmp(option,"4") == 0)
+    {
+        system("clear");
+        char ID[100];
+        
+        printf("Enter the customer ID:\t");
+        scanf("%s", ID);
+        send(sockfd,ID,sizeof(ID),0);
+        
+        recv(sockfd,recv_buffer,sizeof(recv_buffer),0);
+        print_stars();
+        printf("Login_ID\tEmail_ID\t\tPassword\tRole\t\tFull_Name\tPhone_Number\tAddress\n");
+        printf("%s",recv_buffer);
+        print_stars();
+        memset(&recv_buffer, 0, sizeof(recv_buffer));
+        
+    }
+    
+    if(strcmp(option,"5") == 0)
+    {
+        system("clear");
+        char ID[100], transfer[100];
+        printf("Enter your Customer ID:\t");
+        scanf("%s",ID);
+        send(sockfd,ID,sizeof(ID),0);
+        recv(sockfd,transfer,sizeof(transfer),0);
+        print_stars();
+        printf("\tConfirmation Email sent to the email ID - %s, for customer with ID - %s", transfer, ID);
+        print_stars();
     }
 
-    //Setting the server address value to 0's
-    memset(&server_address, 0, sizeof(server_address));
-
-    //Assigning Port number and address family to the socket.
-    server_address.sin_port = htons(PORT);
-    server_address.sin_family = AF_INET;
-
-    //Check whether the server address is valid or not. If it is invalid then display the error message.
-    if(inet_pton(AF_INET, "127.0.0.1", &server_address.sin_addr) <= 0) {
-        printf("Check the address\n");
-        return -1;
+    if(strcmp(option,"6") == 0)
+    {
+        system("clear");
+        printf("\nPending customer requests are - \n\n");
+        recv(sockfd,recv_buffer,sizeof(recv_buffer),0);
+        print_stars();
+        printf("Login_ID\tEmail_ID\t\tPassword\tRole\t\tFull_Name\tPhone_Number\tAddress\n");
+        printf("%s",recv_buffer);
+        print_stars();
+        memset(&recv_buffer, 0, sizeof(recv_buffer));
+        printf("Do you want to approve? (Y/N):\t");
+        char approval[5];
+        scanf("%s",approval);
+        send(sockfd,approval,sizeof(approval),0);
+        if(strcmp(approval,"Y") == 0)
+        {
+            printf("The above pending customer requests have been approved\n");
+        }  
     }
-
-    //Check whether the socket is connected to the server or not. If it is not connected then display the error message.
-    if(connect(sock, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
-        printf("Cannot connect to the server \n");
-        return -1;
+    if(strcmp(option,"7") ==0)
+    {
+        system("clear");
+        login_signup(sockfd);
     }
+    teller_module(LoginID,Password,sockfd);
+}
 
-    //send data to socket
-    write(sock, "Hello", 6);
 
-    goToLandingScreen();
+void admin_module(char *LoginID, char *Password, int sockfd)
+{
+    char option[5];
+    char recv_buffer[100];
+    printf("\n\n\t\t\t\t\t*****  Admin logged in as '%s'  *****\n\n",LoginID);
+    printf("\n");
+    print_lines();
+    printf("Please select one option:\n");
+    printf("1. View Customer Profile\n");
+    printf("2. Setup new teller account\n");
+    printf("3. Delete customer\n");
+    printf("4. Delete teller\n");
+    printf("5. Exit\n");
+    print_lines();
+    printf("\nEnter your choice:\t");
+    scanf("%s", option);
+    send(sockfd, option, sizeof(option), 0);
+    
+    if(strcmp(option,"1") == 0)
+    {
+        system("clear");
+        char ID[100];
+        
+        printf("Enter the customer ID:\t");
+        scanf("%s", ID);
+        send(sockfd,ID,sizeof(ID),0);
+        recv(sockfd,recv_buffer,sizeof(recv_buffer),0);
+        print_stars();
+        printf("Login_ID\tEmail_ID\t\tPassword\tRole\t\tFull_Name\tPhone_Number\tAddress\n");
+        printf("%s",recv_buffer);
+        print_stars();
+        memset(&recv_buffer, 0, sizeof(recv_buffer));
+    }
+    
+    
+    if(strcmp(option,"2") == 0)
+    {
+        system("clear");
+        printf("\nEnter the following details for creating a new account\t");
+        
+        printf("\nEnter Email ID:\t");
+        char email[100];
+        scanf("%s",email);
+        
+        printf("Enter password:\t");
+        char pass[100];
+        scanf("%s",pass);
+        
+        printf("Enter Login ID:\t");
+        char lg[100];
+        scanf("%s",lg);
+        
+        printf("Enter your full name:\t");
+        char fname[100];
+        scanf(" %[^\n]",fname);
+        
+        printf("Enter your Phone Number:\t");
+        char pnumber[100];
+        scanf("%s", pnumber);
+        
+        printf("Enter your address:\t");
+        char address[100];
+        scanf(" %[^\n]",address);
+        
+        char signupdetails[500];
+        strcpy(signupdetails,"");
+        strcat(signupdetails,lg);
+        strcat(signupdetails," ");
+        strcat(signupdetails,email);
+        strcat(signupdetails," ");
+        strcat(signupdetails,pass);
+        strcat(signupdetails," ");
+        // strcat(signupdetails,role);
+        // strcat(signupdetails," ");
+        strcat(signupdetails,pnumber);
+        strcat(signupdetails," ");
+        
+        send(sockfd, signupdetails, sizeof(signupdetails), 0);
+        send(sockfd, fname, sizeof(fname), 0);
+        send(sockfd, address, sizeof(address), 0);
+    }
+    
+    if(strcmp(option,"3") == 0)
+    {
+        system("clear");
+        char ID[100];
+        char email[100];
+        printf("Enter the Customer ID:\t");
+        scanf("%s",ID);
+        send(sockfd,ID,sizeof(ID),0);
+        recv(sockfd,email,sizeof(email),0);
+        print_stars();
+        printf("\t\tThe customer with login ID '%s' and email ID '%s' has been deleted",ID,email);
+        print_stars();
+    }
+    
+    if(strcmp(option,"4") == 0)
+    {
+        system("clear");
+        char ID[100];
+        char email[100];
+        printf("Enter the Teller ID:\t");
+        scanf("%s",ID);
+        send(sockfd,ID,sizeof(ID),0);
+        recv(sockfd,email,sizeof(email),0);
+        print_stars();
+        printf("\t\tThe teller with login ID '%s' and email ID '%s' has been deleted",ID,email);
+        print_stars();
+    }
+    if(strcmp(option,"5") ==0)
+    {
+        system("clear");
+        login_signup(sockfd);
+    }
+    admin_module(LoginID,Password,sockfd);
+}
 
-    printf("\n Inside Main\n");
+
+int login_signup(int sockfd)
+{
+    ssize_t recv_bytes;
+    char recv_buff[100];
+    char LoginID[20];
+    char Password[20];
+    char LoginDetails[20];
+    system("clear");
+    printf("\n\n_________________________________________________________________________");
+    printf("_____________________________________________________\n");
+    printf("\n\t\t\t\t\tTCP/IP DISTRIBUTED BANKING SYSTEM\n");
+    printf("_________________________________________________________________________");
+    printf("_____________________________________________________\n");
+    printf("\nEnter 1 to log in existing account (LogIn)");
+    printf("\nEnter 2 to create a new account (SignUp)\n");
+    printf("\nEnter your choice:\t");
+    int flag = 0;
+    scanf("%d", &flag);
+    
+    if(flag == 1)
+    {
+        system("clear");
+        send(sockfd, &flag, sizeof(int), 0);
+        
+        printf("\nPlease enter your username\t");
+        scanf("%s", LoginID);
+        printf("Please enter your Password\t");
+        scanf("%s", Password);
+        
+        strcpy(LoginDetails,"");
+        strcat(LoginDetails,LoginID);
+        strcat(LoginDetails," ");
+        strcat(LoginDetails,Password);
+        
+        send(sockfd, LoginDetails, sizeof(LoginDetails), 0);
+        
+        if((recv_bytes=recv(sockfd,recv_buff,sizeof(recv_buff),0))>0)
+        {
+            if(strcmp(recv_buff,"CUSTOMER") ==0)
+            {
+                customer_module(LoginID,Password,sockfd);
+            }
+            else if(strcmp(recv_buff,"TELLER") ==0)
+            {
+                teller_module(LoginID,Password,sockfd);
+            }
+            else if(strcmp(recv_buff,"ADMIN") ==0)
+            {
+                admin_module(LoginID,Password,sockfd);
+            }
+            else if(strcmp(recv_buff,"INVALID") == 0)
+            {
+
+                print_stars();
+                printf("\t\t\t\t\tThe LoginID and Password is invalid");
+                print_stars();
+                login_signup(sockfd);
+            }
+        }
+    }
+    else if(flag == 2)
+    {
+        system("clear");
+        send(sockfd, &flag, sizeof(int), 0);
+        
+        printf("\nEnter the following details for creating a new account\t");
+        
+        printf("\nEnter Email ID:\t");
+        char email[100];
+        scanf("%s",email);
+        
+        printf("Enter password:\t");
+        char pass[100];
+        scanf("%s",pass);
+        
+        printf("Enter your full name:\t");
+        char fname[100];
+        scanf(" %[^\n]",fname);
+        
+        printf("Enter your Phone Number:\t");
+        char pnumber[100];
+        scanf("%s", pnumber);
+        
+        printf("Enter your address:\t");
+        char address[100];
+        scanf(" %[^\n]",address);
+        
+        char signupdetails[500];
+        strcpy(signupdetails,"");
+        strcat(signupdetails,email);
+        strcat(signupdetails," ");
+        strcat(signupdetails,pass);
+        strcat(signupdetails," ");
+        strcat(signupdetails,pnumber);
+        strcat(signupdetails," ");
+        send(sockfd, signupdetails, sizeof(signupdetails), 0);
+        send(sockfd, fname, sizeof(fname), 0);
+        send(sockfd, address, sizeof(address), 0);
+        
+        char test[100];
+        recv(sockfd,test,sizeof(test),0);
+        print_stars();
+        printf("Thank you for choosing the TCP/IP Bank.");
+        printf("Email containing the Login credentials have been sent to '%s'.\n", test);
+        printf("Your profile is under review. Once approved, you will receive an email regarding the same.\n");
+        print_stars();
+/////////////////////////////////
+        login_signup(sockfd);
+    }
     return 0;
 }
 
-void goToLoginScreen() 
+int main(int argc, char *argv[])
 {
-    system("clear");
-    char username[40];
-    char password[20];
-    printf("\n------------------------------------------------------------------------");
-    printf("\n\t\t\t\tLogin\n");
-    printf("------------------------------------------------------------------------\n\n");
-    // printf("Login\n");
-    char choice;
-    do {
-        printf("\nUsername : ");
-        scanf("%s", username);
-        printf("\nPassword : ");
-        system("stty -echo");
-        scanf("%s", password);
-        printf("\n\n");
-        system("stty echo");
-        strcat(username, ",");
-        strcat(username, password);
-        sendDataToServer(username);
-        goToCustomerListScreen(username);
-        printf("Press X to go to home page\n");
-        scanf(" %c", &choice);
-    } while(choice != 'X');
-}
-
-void goToLandingScreen() 
-{
-    char choice;
-    do {
-        system("clear");
-        printf("\n------------------------------------------------------------------------");
-        printf("\n\t\t\tWelcome to SockBank\n");
-        printf("------------------------------------------------------------------------\n\n");
-        printf("Are you an existing user? (Y/N) \t OR  \t \t");
-        printf("Press X to exit\n\n");
-        scanf(" %c", &choice);
-        fflush(stdin);
-        
-        switch(choice)
-        {
-            case 'Y':
-                sendDataToServer("LoginCustomer");
-                goToLoginScreen();
-                break;
-            case 'N':
-                goToChoiceScreen(); 
-                break;
-        }
-
-    } while(choice != 'X');
-   
-    printf("\n Outside Switch\n"); 
-}
-
-void goToChoiceScreen()
-{
-  char choice;
-  system("clear");
-  printf("\n Do you want to open an account with SockBank? (Y/N) \t OR \t");
-  printf("Press X to exit\n\n");
-  do
-  {
-   scanf(" %c",&choice);
-   fflush(stdin);
-   switch(choice)
-   {
-     case  'Y' :
-                sendDataToServer("SignUpCustomer");
-                goToSignUpScreen();
-                break;
-     case 'N' : 
-                goToLandingScreen();
-                break;
-   }
-  }while(choice!= 'X');
-  
-}
-
-void sendDataToServer(char* message) 
-{
-    write(sock, message, strlen(message)+1);
-}
-
-void goToSignUpScreen()
-{
-   system("clear");
-   char firstName[200];
-   char lastName[20];
-   char dob[20];
-   char address[40];
-   char SSN[20];
-   char contactNumber[10];
-   char emailId[40];
-   char accountType[10];
-   char password[20];
-   char choice;
-  
-   printf("\n------------------------------------------------------------------------");
-   printf("\n\t\t\t\tSignUp\n");
-   printf("------------------------------------------------------------------------\n\n");
-   printf("\nPlease enter the following details\n");
-   printf("\nFirst Name : ");
-   scanf("%s", firstName);
-   printf("\nLast Name : ");
-   scanf("%s", lastName);
-   printf("\nDate of birth (yyyy-mm-dd) :");
-   scanf("%s", dob);
-   printf("\nAddress :");
-   scanf(" %[^\n]",address);
-   printf("\nSSN (enter NA if not applicable) :");
-   scanf("%s", SSN);
-   printf("\nContact Number :");
-   scanf("%s",contactNumber);
-   printf("\nEmail Id (this will be your username) :");
-   scanf("%s",emailId);
-   printf("\nAccount Type (Savings/Checking):");
-   scanf("%s",accountType);
-   printf("\nPassword :");
-   system("stty -echo");
-   scanf("%s",password);
-   system("stty echo");
-   strcat(firstName, ",");
-   strcat(firstName, lastName);
-   strcat(firstName, ",");
-   strcat(firstName, dob);
-   strcat(firstName, ",");
-   strcat(firstName, address);
-   strcat(firstName, ",");
-   strcat(firstName, SSN);
-   strcat(firstName, ",");
-   strcat(firstName, contactNumber);
-   strcat(firstName, ",");
-   strcat(firstName, emailId);
-   strcat(firstName, ",");
-   strcat(firstName, accountType);
-   strcat(firstName, ",");
-   strcat(firstName, password);
-   sendDataToServer(firstName);
-   goToMessageScreen();
-   goToLandingScreen();
-}
-
-void goToMessageScreen()
-{
-  system("clear");
-  char choice;
-  
-  do
-  {
-   printf("\n-----------------------------------------------------------------------------------\n");
-   printf("\n \t\t\t Thank you for choosing SockBank!\n");
-   printf("\n \tYou will receive an email regarding further procedure in 5-7 business days.\n\n");
-   printf("\n-----------------------------------------------------------------------------------\n");
-   printf("\nPress X to go to homescreen\n");
-   scanf(" %c",&choice);
-   fflush(stdin);
-  }while(choice != 'X');
-}
-
-void goToCustomerListScreen(char* user) {
+    /* 
+    *  sockfd is the socket descriptor which is an integer value
+    *  filename is used to store the name of the file 
+    */
+    int sockfd;
+    struct sockaddr_in serv_addr;
     
-    
-    
-    char choice;
-    do {
-        system("clear");
-        printf("\n------------------------------------------------------------------------");
-        printf("\n\t\t\tWelcome to SockBank\n");
-        printf("------------------------------------------------------------------------\n\n");
-        printf("Please choose from the below options:\n\n");
-        printf("A. View Profile\n");
-        printf("B. Edit Profile\n");
-        printf("C. Account Information\n");
-        printf("D. Money Transfer\n");
-        printf("E. Debit Money\n");
-        printf("F. Credit Money\n\n");
-        printf("Press X to exit\n\n");
-        
-        scanf(" %c", &choice);
-        fflush(stdin);
-        switch(choice)
-        {
-            case 'A':
-                //sendDataToServer(user);
-                customerProfileScreen();
-                
-                break;
-                
-            case 'B':
-                sendDataToServer("EditProfile");
-                goToCustomerEditProfileListScreen(user);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    /* 
+    *  Socket call will return a socket descriptor on success which is an integer 
+    *  And it will return '-1' for error
+    */
+    if (sockfd == -1) 
+    {
+        printf("\nerror calling socket\n");
+        exit(1);
+    }
 
-                break;
-            
-            case 'C':
-                //sendDataToServer("AccountInfo");
-                goToAccountInfoScreen();
-                
-                break;
-                
-            case 'D':
-                //sendDataToServer("MoneyTransfer");
-                goToLoginScreen();
-                
-                break;
-                
-            case 'E':
-                //sendDataToServer("MoneyTransfer");
-                goToDebitScreen();
-                
-                break;
+    /* Populating the sockaddr_in struct with the following values */
+    /* Assigning the AF_INET (Internet Protocol v4) address family */
+    serv_addr.sin_family = AF_INET; 
 
-            case 'F':
-                //sendDataToServer("MoneyTransfer");
-                goToCreditScreen();
-                
-                break;
+    /* Populating the Server IP address with the value of the localhost IP address */
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-            case 'N':
-                printf("Do you want something?\n");
-                break;
-        }
-        
-    } while(choice != 'X');
-}
+    /* Converting the port number received from host byte order to network byte order */
+    serv_addr.sin_port = htons(8000);
 
-void customerProfileScreen() {
-    
-    system("clear");
-    
-    printf("\n------------------------------------------------------------------------");
-    printf("\n\t\t\tWelcome to SockBank\n");
-    printf("------------------------------------------------------------------------\n\n");
-    fflush(stdin);
-    
-    char buffer[2048];
-    memset(&buffer[0], 0, sizeof(buffer));
-    int n = read(sock, buffer, sizeof(buffer));
-    // write(1, buffer, n);  //values received from server
-    // write(1, "\n", 1);
-    
-    const char s[2] = ",";
-    char *token;
-    
-    /* get the first token */
-    token = strtok(buffer, s);
-    char data[10][20];
-    strcpy(data[0],token);
-    
-    /* walk through other tokens */
-    int i = 1;
-    while (token != NULL) {
-        //printf("%s\n", token);
-        token = strtok(NULL, s);
-        if (token)
-            strcpy(data[i], token);
-        i++;
+    /* 
+    *  Connect () takes three arguments:
+    *  The sockect descriptor
+    *  Server Address Structure
+    *  And the size of Address 
+    */
+    if (connect(sockfd,(struct sockaddr*)&serv_addr,sizeof(serv_addr)) < 0)
+    /* Connect() returns '-1' on failure and 0 on success */
+    {
+        printf("\nError connecting to server\n");
+        exit(1);
     }
     
-    char name[50];
-    strcat(data[0]," ");
-    strcpy(name,data[0]);
-    strcat(name,data[1]);
-    
-    // printf("HIIIII\n");
-    
-    // printf("%s",data[1]);
-    
-    
-    char choice;
-    do {
-        printf("Name          : %s",name);
-        printf("\nDate of Birth : %s",data[2]);
-        printf("\nAddress       : %s",data[3]);
-        printf("\nContact Number: %s",data[4]);
-        printf("\nEmail ID      : %s",data[5]);
-        printf("\nAccount Number: %s",data[6]);
-        printf("\nAccount Type  : %s",data[7]);
-        printf("\n\n");
-        printf("Press X to go to home page\n");
-        scanf(" %c", &choice);
-    } while(choice != 'X');
+    login_signup(sockfd);
+    close(sockfd);
+    return 0;
 }
-
-void goToCustomerEditProfileListScreen(char* user) {
-    
-    char data[20];
-    char choice;
-    do {
-        system("clear");
-        printf("\n------------------------------------------------------------------------");
-        printf("\n\t\t\tWelcome to SockBank\n");
-        printf("------------------------------------------------------------------------\n\n");
-        printf("Please choose from the below option that you want to edit:\n\n");
-        printf("A. Email ID\n");
-        printf("B. Contact\n");
-        printf("C. Address\n");
-        printf("\n\nPress X to exit\n\n");
-        
-        scanf(" %c", &choice);
-        fflush(stdin);
-        switch(choice)
-        {
-            case 'A':
-                //sendDataToServer(user);
-                strcpy(data, "Email");
-                customerEditProfileScreen(user,data);
-                
-                break;
-                
-            case 'B':
-                //sendDataToServer("AccountInfo");
-                strcpy(data, "Contact");
-                customerEditProfileScreen(user,data);
-
-                break;
-            
-            case 'C':
-                //sendDataToServer("AccountInfo");
-                strcpy(data, "Address");
-                customerEditProfileScreen(user,data);
-                
-                break;
-                
-            case 'N':
-                printf("Do you want something?\n");
-                break;
-        }
-        
-    } while(choice != 'X');
-}
-
-
-
-void customerEditProfileScreen(char* user,char* data) {
-
-   system("clear");
-   char detail[200];
-   //char choice;
-  
-   system("clear");
-   printf("\n------------------------------------------------------------------------");
-   printf("\n\t\t\tWelcome to SockBank\n");
-   printf("------------------------------------------------------------------------\n\n");
-   printf("Please enter the updated detail:\n\n");
-   if(!strcmp(data, "Email")) {
-    printf("\nEmail ID : ");
-    scanf("%s", detail);
-    strcat(detail, ",");
-    strcat(detail,data);
-    strcat(detail, ",");
-    strcat(detail,user);
-   }
-   else if(!strcmp(data, "Contact")) {
-    printf("\nContact : ");
-    scanf("%s", detail);
-    strcat(detail, ",");
-    strcat(detail,data);
-    strcat(detail, ",");
-    strcat(detail,user);
-   }
-   if(!strcmp(data, "Address")) {
-    printf("\nAddress : ");
-    scanf(" %[^\n]",detail);
-    strcat(detail, ",");
-    strcat(detail,data);
-    strcat(detail, ",");
-    strcat(detail,user);
-   }
-   sendDataToServer(detail);
-   goToProfileEditMessageScreen(user);
-   goToCustomerEditProfileListScreen(user);
-}
-
-void goToProfileEditMessageScreen(char* user)
-{
-  system("clear");
-  char choice;
-  do
-  {
-   printf("\n-----------------------------------------------------------------------------------\n");
-   printf("\n \tYour profile is updated successfully. Thank you.\n\n");
-   printf("\n-----------------------------------------------------------------------------------\n");
-   printf("\nPress X to go to homescreen\n");
-   //sleep(5);
-   //goToCustomerListScreen(user);
-   scanf(" %c",&choice);
-   fflush(stdin);
-  }while(choice != 'X');
-}
-
-void goToExitScreen()
-{
-    system("clear"); 
-    printf("\n----------------------------------------------------------------------------\n"); 
-    printf("\n\t\t\t THANK YOU! \t\t\n\n");
-    printf("----------------------------------------------------------------------------\n\n"); 
-}
-
-void goToAccountInfoScreen() {
-
-    system("clear");
-    printf("\n------------------------------------------------------------------------");
-    printf("\n\t\t\tWelcome to SockBank\n");
-    printf("------------------------------------------------------------------------\n\n");
-    printf("Account Number: \n");
-    printf("Account Type  : \n");
-
-}
-
-void goToDebitScreen() {
-
-    system("clear");
-    printf("\n------------------------------------------------------------------------");
-    printf("\n\t\t\tWelcome to SockBank\n");
-    printf("------------------------------------------------------------------------\n\n");
-    printf("Enter the amount to be debited: \n\n\n");
-    printf("The amount is successfully debited.\n");
-
-}
-
-void goToCreditScreen() {
-    
-        system("clear");
-        printf("\n------------------------------------------------------------------------");
-        printf("\n\t\t\tWelcome to SockBank\n");
-        printf("------------------------------------------------------------------------\n\n");
-        printf("Enter the amount to be credited: \n\n\n");
-        printf("The amount is successfully credited.\n");
-    
-    }
